@@ -90,16 +90,26 @@ module.exports = function(grunt) {
               cb();
           };
       }
+    function removeDirectory( dir ){
+      return function(cb) {
+        grunt.file.expand(dir).forEach(function(path) {
+            grunt.file.delete( path ) ;
+        });
+        cb();
+      };
+    }
 
     grunt.file.mkdir( deployDir );
 
     grunt.file.delete(path.join(src, '.git'));
+      var absDeployDir = path.join(deployDir);
 
     var done = this.async();
 
     var commands = [
       git(['clone', '-b', options.branch, options.url, '.' ]),
       git(['checkout', '-B', options.branch]),
+      removeDirectory(  [ absDeployDir + '/*', '!'+absDeployDir, '!.git', '!.gitignore' ] ),
       copyIntoRepo( src, deployDir ),
       git(['add', '--all']),
       git(['commit', '--message=' + options.message ])
@@ -110,6 +120,8 @@ module.exports = function(grunt) {
     }
 
     commands.push( git(['push', '--prune', '--force', '--quiet', '--follow-tags', options.url, options.branch]) );
+
+    commands.push( removeDirectory( 'tmp/' ) );
 
     grunt.util.async.series(commands, done);
 
